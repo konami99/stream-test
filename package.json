@@ -1,0 +1,16 @@
+{
+  "name": "stream-test",
+  "version": "1.0.0",
+  "description": "Test streaming Lambda using @expo/fetch",
+  "type": "module",
+  "scripts": {
+    "test": "node index.js",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@aws-sdk/credential-provider-node": "^3.972.23",
+    "@aws-sdk/signature-v4": "^3.370.0",
+    "@smithy/node-http-handler": "^4.5.0",
+    "@smithy/protocol-http": "^5.3.12"
+  }
+}
