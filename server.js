@@ -8,12 +8,14 @@ import { HttpRequest } from "@smithy/protocol-http";
 import { Sha256 } from "@aws-crypto/sha256-js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const LAMBDA_URL = process.env.LAMBDA_URL || "http://localhost:3000/";
-const PORT = process.env.PORT || 8080;
+const LAMBDA_URL = process.env.LAMBDA_URL || "http://localhost:8080/invocations";
+const PORT = process.env.PORT || 3000;
 const REGION = process.env.AWS_REGION || "us-west-2";
 
 const parsed = new URL(LAMBDA_URL);
-const needsSigning = parsed.hostname.includes("lambda-url");
+const isLambdaUrl = parsed.hostname.includes("lambda-url");
+const isAgentCoreUrl = parsed.hostname.includes("bedrock-agentcore");
+const needsSigning = isLambdaUrl || isAgentCoreUrl;
 
 async function signedFetch(url, body) {
   if (!needsSigning) {
@@ -40,7 +42,7 @@ async function signedFetch(url, body) {
   const signer = new SignatureV4({
     credentials: defaultProvider(),
     region: REGION,
-    service: "lambda",
+    service: isAgentCoreUrl ? "bedrock-agentcore" : "lambda",
     sha256: Sha256,
   });
 
