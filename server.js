@@ -1,4 +1,5 @@
 import http from "http";
+import { randomUUID } from "crypto";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -11,6 +12,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const LAMBDA_URL = process.env.LAMBDA_URL || "http://localhost:8080/invocations";
 const PORT = process.env.PORT || 3000;
 const REGION = process.env.AWS_REGION || "us-west-2";
+const BEARER_TOKEN = process.env.BEARER_TOKEN || "";
+const SESSION_ID = randomUUID();
 
 const parsed = new URL(LAMBDA_URL);
 const isLambdaUrl = parsed.hostname.includes("lambda-url");
@@ -19,11 +22,9 @@ const needsSigning = isLambdaUrl || isAgentCoreUrl;
 
 async function signedFetch(url, body) {
   if (!needsSigning) {
-    return fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body,
-    });
+    const headers = { "Content-Type": "application/json" };
+    if (BEARER_TOKEN) headers["Authorization"] = `Bearer ${BEARER_TOKEN}`;
+    return fetch(url, { method: "POST", headers, body });
   }
 
   const bodyBytes = Buffer.from(body);
@@ -68,10 +69,15 @@ const server = http.createServer((req, res) => {
     req.on("data", (chunk) => (body += chunk));
     req.on("end", async () => {
       try {
-        const { prompt } = JSON.parse(body);
+        const { prompt, session_id: clientSessionId, history } = JSON.parse(body);
+        const jwtPayload = BEARER_TOKEN
+          ? JSON.parse(Buffer.from(BEARER_TOKEN.split(".")[1], "base64url").toString())
+          : null;
+        const user_id = jwtPayload?.sub ?? null;
+        const session_id = clientSessionId || SESSION_ID;
         const lambdaRes = await signedFetch(
           LAMBDA_URL,
-          JSON.stringify({ prompt })
+          JSON.stringify({ prompt, user_id, session_id, history: history || [] })
         );
 
         if (!lambdaRes.ok) {

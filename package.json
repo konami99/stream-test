@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "test": "node index.js",
-    "start": "node server.js"
+    "start": "node --env-file=.env server.js"
   },
   "dependencies": {
     "@aws-sdk/credential-provider-node": "^3.972.23",

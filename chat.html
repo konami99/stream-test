@@ -160,6 +160,9 @@
     const promptEl = document.getElementById("prompt");
     const sendBtn = document.getElementById("send-btn");
 
+    const sessionId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const history = [];
+
     function addMessage(role, text = "") {
       const wrapper = document.createElement("div");
       wrapper.className = `message ${role}`;
@@ -192,11 +195,14 @@
       const { wrapper, bubble } = addMessage("assistant");
       wrapper.classList.add("streaming");
 
+      const historySnapshot = history.slice(-10).map(m => ({ role: m.role, content: m.content }));
+      history.push({ role: "user", content: prompt });
+
       try {
         const res = await fetch("/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt }),
+          body: JSON.stringify({ prompt, session_id: sessionId, history: historySnapshot }),
         });
 
         if (!res.ok) {
@@ -230,6 +236,9 @@
 
             messagesEl.scrollTop = messagesEl.scrollHeight;
           }
+        }
+        if (bubble.textContent) {
+          history.push({ role: "assistant", content: bubble.textContent });
         }
       } catch (err) {
         bubble.textContent = `Error: ${err.message}`;
